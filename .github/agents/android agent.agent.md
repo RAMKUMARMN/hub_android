@@ -1,7 +1,17 @@
 ---
 name: "android-agent"
 description: "Describe what this custom agent does and when to use it."
+hooks:
+  PreSession:
+    - type: command
+      command: "if ! command -v flutter &>/dev/null; then echo 'ERROR: Flutter SDK not installed.'; exit 1; fi"
+    - type: command
+      command: "if [ -z \"${ANDROID_HOME:-}\" ] && [ -z \"${ANDROID_SDK_ROOT:-}\" ]; then echo 'WARNING: ANDROID_HOME not set.'; fi"
+  PostCommand:
+    - type: command
+      command: "echo \"[$(date -u +'%Y-%m-%dT%H:%M:%SZ')] exit=$1 | $2\" >> /tmp/android-agent.log"
 ---
+
 This custom "android agent" assists contributors and maintainers working in this repo with Android build configuration, Flutter integration, and platform-specific tasks for the `hub_android` module. It acts as a focused, safety-first helper for authoring, reviewing, validating, and documenting changes to the Android project files.
 
 **What it accomplishes**

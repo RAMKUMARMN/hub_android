@@ -1,0 +1,27 @@
+---
+applyTo: "**/*.gradle,**/*.kts,**/*.xml,**/*.properties"
+---
+# Project coding standards for Android (Flutter build config)
+
+Apply the [general coding guidelines](./general-coding.instructions.md) to all code.
+
+## Gradle Guidelines
+- Use Kotlin DSL (`.kts`) for Gradle build files
+- Define SDK versions in `ext` or `buildscript` block for consistency
+- Keep dependency versions in a `versions.toml` catalog when possible
+- Never hardcode signing configs — use GitHub Secrets
+- Pin dependency versions explicitly (avoid `+`)
+
+## Android Manifest & Config Guidelines
+- Declare all permissions explicitly in `AndroidManifest.xml`
+- Use `tools:replace` for manifest merging conflicts
+- Keep `google-services.json` out of version control — load via CI secrets
+- ProGuard/R8 rules in `android/app/proguard-rules.pro`
+- Target SDK 34+, min SDK 26+
+
+## Flutter Integration Guidelines
+- Do not write Flutter/Dart code here — that lives in `hub_mobile/`
+- Gradle wrapper and Flutter-generated config should be committed
+- Use `flutter build apk` / `flutter build appbundle` for builds, not direct Gradle
+- Debug builds use debug keystore; release builds require manual confirmation
+- FCM setup requires `google-services.json` and `firebase_messaging` plugin in pubspec

@@ -1,0 +1,10 @@
+[
+  {
+    "run": "if ! command -v flutter &>/dev/null; then echo 'ERROR: Flutter SDK is not installed. Install Flutter 3.x to work on hub_android.'; exit 1; fi",
+    "description": "Verify Flutter SDK is installed"
+  },
+  {
+    "run": "if [ -z \"${ANDROID_HOME:-}\" ] && [ -z \"${ANDROID_SDK_ROOT:-}\" ]; then echo 'WARNING: ANDROID_HOME or ANDROID_SDK_ROOT not set. Set Android SDK path for Android builds.'; fi",
+    "description": "Check Android SDK environment variable"
+  }
+]
