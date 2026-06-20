@@ -1,0 +1,10 @@
+{
+    "id":  "discover-android-status",
+    "name":  "discover-android-status",
+    "type":  "skill",
+    "repository":  "hub_android",
+    "enabled":  true,
+    "version":  "1.0.0",
+    "mcp_server":  "mcp_hub_android",
+    "tool":  "discoverAndroidStatus"
+}
