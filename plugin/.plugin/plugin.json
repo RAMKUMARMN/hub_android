@@ -1,4 +1,5 @@
 {
+
 "repository": "hub_android",
 "repository_role": "android_client",
 "smart_hub": { "platform": "SmartHub", "managed": true, "management_repository": "hub_infra" },
@@ -57,3 +58,4 @@
 "allow_validation": true
 }
 }
+
