@@ -1,0 +1,10 @@
+{
+    "id": "trace-android-features",
+    "name": "trace-android-features",
+    "type": "skill",
+    "repository": "hub_android",
+    "enabled": true,
+    "version": "1.0.0",
+    "mcp_server": "",
+    "tool": ""
+}
