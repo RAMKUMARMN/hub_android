@@ -1,82 +1,128 @@
 ---
 name: android-agent-skills
-description: Skills for the `hub_android` assistant: Gradle build configuration, Flutter Android integration, FCM setup, deep links, offline caching, and safe build management. The agent helps maintainers set up and manage Android project configuration in the repository, with a strong emphasis on safety and human oversight for release-signing actions.
+description: Skills for the `hub_android` assistant: Gradle build configuration, FCM push notifications, deep links, platform permissions, offline caching, and safe build management. The coordinator routes requests to single-task agents.
 ---
+
 # Android Agent — Skills Catalog
 
-This document describes the skills, inputs/outputs, tools, safety constraints, and example prompts the `android-agent` (see `android agent.agent.md`) supports for the `hub_android` repository.
+This document describes the skills, inputs/outputs, tools, safety constraints, and example prompts the `android-agent` (see `android-agent.agent.md`) supports for the `hub_android` repository.
 
 **Purpose**
 - Provide a compact, discoverable list of the agent's actionable capabilities so maintainers can quickly know what to ask and what to expect.
 
 **Quick summary**
-- **Primary domain:** Android build configuration (Gradle via Flutter), FCM push notifications, deep links, offline caching, camera/gallery permissions.
-- **Primary outputs:** repository patches/diffs, GitHub Actions workflow files, CI job templates, README snippets, and PR-ready descriptions.
+- **Primary domain:** Android build configuration (Gradle via Flutter), FCM push notifications, deep links, platform permissions, offline caching, CI workflows.
+- **Primary outputs:** repository patches/diffs, Gradle build files, AndroidManifest updates, GitHub Actions workflow files, and PR-ready descriptions.
 - **Primary safety posture:** Prepare and validate build configuration; never autonomously sign or publish release builds without explicit maintainer confirmation.
 
 ## Capabilities
 
-- Generate or update GitHub Actions workflows to run `flutter analyze`, `flutter test`, `flutter build apk`, and (when authorized) `flutter build appbundle --release`.
-- Configure Gradle build variants (`debug`, `release`) with environment-specific settings.
-- Configure Firebase Cloud Messaging (FCM) via `google-services.json` and verify setup.
-- Configure Android App Links (deep linking) with intent filters and asset links.
-- Produce repository patches via `apply_patch` (small, focused edits) and provide diffs for review before applying.
-- Run static checks in CI: `flutter analyze`, `./gradlew lint`, optional detekt integration.
-- Draft PR descriptions, risk notes, and post-build verification checklists.
-- Create a safe release build job template guarded by typed confirmation and restricted to manual dispatch.
+### Gradle Build Configuration (handled by `android-gradle` agent)
+- Configure SDK versions (compileSdk, targetSdk, minSdk)
+- Set up release signing with GitHub Secrets
+- Manage dependencies and version catalogs
+- Configure ProGuard/R8 rules
+- Manage build variants (debug, release)
+
+### Push Notifications & Deep Links (handled by `android-push` agent)
+- FCM setup via google-services.json and firebase_messaging plugin
+- Android App Links configuration
+- Asset links file generation
+- FCM verification and testing
+
+### Platform Features & Permissions (handled by `android-platform` agent)
+- Android manifest permission declarations
+- File provider setup for camera/gallery
+- Offline caching configuration (Hive, shared_preferences)
+- Resource configuration
+
+### CI Workflows (handled by `android-ci` agent)
+- Flutter analyze, test, and build jobs
+- Gradle and Flutter dependency caching
+- Release signing with confirmation gates
+- Artifact upload and Slack notifications
+
+### Infrastructure Skills (reusable guides in `.agents/skills/`)
+- `android-gradle-setup` — Gradle build configuration
+- `android-push-setup` — FCM and deep link setup
+- `android-platform-setup` — Android permissions and platform features
+- `android-ci-workflow` — GitHub Actions CI workflow template
+- `android-debug-build` — Build commands and troubleshooting
 
 ## Inputs the agent expects (ask if missing)
-- `build_variant` -- which build variant to target: `debug`, `release`.
-- `target_sdk`, `min_sdk`, `compile_sdk` -- Android SDK versions.
-- `signing_config` -- repo secret names for `KEYSTORE_BASE64`, `KEYSTORE_PASSWORD`, `KEY_ALIAS`, `KEY_PASSWORD`.
-- `fcm_config` -- repo secret name for `google-services.json` or `FCM_SERVER_KEY`.
-- `notification` config -- repo secret name for `SLACK_WEBHOOK_URL` or `NOTIFICATION_EMAIL`.
+- `target_sdk` / `min_sdk` / `compile_sdk` — Android SDK versions
+- `build_variant` — debug or release
+- `signing_config` — secret names for keystore
+- `fcm_config` — FCM sender ID, server key secret name
+- `deep_link_host` — domain for Android App Links
+- `permissions` — list of Android permissions to add
 
 ## Outputs the agent produces
-- New or modified workflow YAML files in `/.github/workflows/` (e.g., `android-build.yml`).
-- README/docs snippets describing required secrets and how to run the workflow.
-- PR-ready changelog/summary and verification checklist.
-- Patches (diffs) applied with `apply_patch` when given explicit permission.
+- New or modified Gradle build files
+- AndroidManifest.xml updates
+- FCM configuration and deep link setup
+- CI workflow YAML files in `/.github/workflows/`
+- README/docs snippets describing required secrets
+- PR-ready changelog/summary and verification checklist
 
 ## Tools the agent uses
-- `apply_patch` -- create or update repo files (used only after human confirmation for impactful changes).
-- `read_file`, `file_search`, `grep_search` -- inspect repo layout and find Gradle or config files.
-- `manage_todo_list` -- track multi-step tasks and report progress back to the maintainer.
-- `run_in_terminal` -- only if explicitly requested; otherwise the agent outputs commands for maintainers to run locally or in CI.
+- Repository editing tools for making focused edits
+- File search and read tools to inspect repo layout
+- Progress tracking tools to manage multi-step tasks
 
 ## Safety, boundaries, and policies
 
-- Never request or accept raw secrets in chat messages. Instead, the agent asks for secret *names* (e.g., `KEYSTORE_BASE64`, `KEY_ALIAS`) and instructs maintainers to set them in GitHub Secrets.
-- Never perform release signing or Play Store upload without an explicit confirmation token: `CONFIRM_RELEASE_BUILD` (maintainer must provide this token before the agent takes any action that would modify release signing configs or automated build steps).
+- Never request or accept raw secrets in chat messages. Instead, ask for secret *names* (e.g., `KEYSTORE_BASE64`, `KEY_ALIAS`) and instruct maintainers to set them in GitHub Secrets.
+- Never perform release signing or Play Store upload without an explicit confirmation token: `CONFIRM_RELEASE_BUILD`.
 - No direct Google Play Console API operations.
-- No automatic PR merging or repo-level approvals -- the agent drafts, explains, and optionally creates patches/PRs after explicit permission.
+- No automatic PR merging or repo-level approvals — draft and explain only.
 
 ## Confirmation and escalation rules
-- Low-risk edits (formatting, docs, dependency version bumps): agent may apply patches after a single maintainer approval.
-- Medium-risk edits (build config changes, new Gradle plugins, FCM setup changes): require an explicit approval message before applying patches.
-- High-risk edits (changes that enable or run release signing, alter keystore configuration, or modify Play Store upload steps): require the typed confirmation `CONFIRM_RELEASE_BUILD` and a second acknowledgment (e.g., "I understand this will produce a signed release artifact").
+- Low-risk edits (formatting, docs, dependency version bumps): apply patches after a single maintainer approval.
+- Medium-risk edits (build config changes, new Gradle plugins, FCM setup): require explicit approval before applying.
+- High-risk edits (changes that enable or run release signing, alter keystore configuration): require `CONFIRM_RELEASE_BUILD` and a second acknowledgment.
 
 ## Example prompts (how to ask the agent)
-- "Create an `android-build.yml` workflow that supports `debug` and `release` variants; use `KEYSTORE_BASE64` and `KEY_ALIAS` repo secrets; require approval for release signing; post results to Slack via `SLACK_WEBHOOK_URL`."
-- "Add the `CAMERA` and `READ_MEDIA_IMAGES` permissions to the Android manifest and update the README -- show me the patch before applying."
-- "Draft a release build workflow that requires typed confirmation `CONFIRM_RELEASE_BUILD` and logs the operator who invoked it."
 
-## Typical workflows the agent supports
+### Gradle Build
+- "Update `android/app/build.gradle` to target SDK 34 and min SDK 26."
+- "Add Firebase Crashlytics plugin to the Gradle build."
 
-1. Discovery: scan repo for `android/`, `pubspec.yaml`, `build.gradle`, and existing config files.
-2. Draft: create a draft build workflow with `analyze`, `test`, `build` stages.
-3. Review: produce a PR description, risk summary, and required secrets docs.
-4. Apply (human-gated): upon confirmation, the agent can apply small, non-release patches or add CI steps; release builds require `CONFIRM_RELEASE_BUILD`.
+### Push Notifications
+- "Verify the FCM setup for hub_android."
+- "Configure Android App Links for `app.hub.example.com`."
 
-## Error handling & troubleshooting behavior
-- If `flutter analyze` or `./gradlew lint` fails, the agent returns a concise diagnostics summary and suggests fixes.
-- If `flutter build` shows missing SDK or dependency errors, the agent highlights them, explains likely causes, and recommends fixes.
+### Platform Features
+- "Add CAMERA and READ_MEDIA_IMAGES permissions to AndroidManifest.xml."
+- "Configure Hive for offline caching."
+
+### CI Workflows
+- "Create an android-build.yml workflow with lint, test, and build-apk jobs."
+
+## Agent Architecture
+
+The coordinator (`android-agent`) routes to single-task agents:
+
+| Agent | Responsibility |
+|---|---|
+| `android-gradle` | Gradle build configuration |
+| `android-push` | FCM push notifications and deep links |
+| `android-platform` | Android permissions and platform features |
+| `android-ci` | CI workflows for Android builds |
+| `android-planner` | Implementation planning |
+| `android-code-reviewer` | Code review before merge |
 
 ## How progress is reported
-- The agent uses `manage_todo_list` to break tasks into steps (discover -> draft -> patch -> verify) and will report the current step and completed steps in chat messages.
+- Each agent breaks tasks into steps and reports current/completed steps
 
-## Where to find the agent's configuration and prompts
-- Agent behavior is documented in `/.github/agents/android agent.agent.md` and the repository prompt lives at `/.github/prompts/android-prompt.prompt.md`.
+## Where to find configuration
+- Agent configs: `/.github/agents/*.agent.md`
+- Prompts: `/.github/prompts/*.prompt.md`
+- Skills: `/.agents/skills/*/SKILL.md`
+- Hooks: `/.github/hooks/*.json`
+- General guidelines: `/.github/copilot-instructions.md`
 
 ## Maintenance notes
-- Keep `SKILLS.md` aligned with `android agent.agent.md` and `android-prompt.prompt.md` -- update all three when adding new capabilities (for example, support for a new linter or a different build system).
+- Keep `SKILLS.md` aligned with individual agent files and prompts
+- When adding a new skill, create `/.agents/skills/<name>/SKILL.md` and update this catalog
+- When adding a new single-task agent, create the agent file, prompt file, register it in the coordinator's handoffs, and add to `opencode.jsonc`
