@@ -103,14 +103,25 @@ This document describes the skills, inputs/outputs, tools, safety constraints, a
 
 The coordinator (`android-agent`) routes to single-task agents:
 
-| Agent | Responsibility |
+| Agent | Category | Responsibility |
+|---|---|---|
+| `android-planner` | Scope/Structure | Implementation planning |
+| `android-gradle` | Build Configuration | Gradle build configuration |
+| `android-push` | Push Notifications | FCM push notifications and deep links |
+| `android-platform` | Platform Features | Android permissions and platform features |
+| `android-ci` | CI/CD | CI workflows for Android builds |
+| `android-code-reviewer` | Gatekeeper | Code review before merge |
+
+### Architectural Guardrails
+
+| Rule | Description |
 |---|---|
-| `android-gradle` | Gradle build configuration |
-| `android-push` | FCM push notifications and deep links |
-| `android-platform` | Android permissions and platform features |
-| `android-ci` | CI workflows for Android builds |
-| `android-planner` | Implementation planning |
-| `android-code-reviewer` | Code review before merge |
+| Thin orchestrator | Coordinator never implements, never holds state, never waits. All handoffs use `send: false`. |
+| DAG-only delegation | One-way flow, no circular calls (child → coordinator strictly forbidden). |
+| Max 2 concurrent agents | No more than two specialized agents active simultaneously. Queue excess and wait for idle. |
+| Sequential dispatch | If dependencies exist (e.g., Gradle before CI), dispatch sequentially. Wait between dependent agents. |
+| Blocking handoffs | Only child agents may use `send: true` (e.g., code-reviewer → gradle for config validation). |
+| One specialist per request | Ambiguous requests ask user to split. Never route to multiple agents for the same request. |
 
 ## How progress is reported
 - Each agent breaks tasks into steps and reports current/completed steps
