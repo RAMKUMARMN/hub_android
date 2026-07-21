@@ -1,6 +1,7 @@
 ---
 applyTo: "**/*.gradle,**/*.kts,**/*.xml,**/*.properties"
 ---
+
 # Project coding standards for Android (Flutter build config)
 
 Apply the [general coding guidelines](./general-coding.instructions.md) to all code.
@@ -25,3 +26,36 @@ Apply the [general coding guidelines](./general-coding.instructions.md) to all c
 - Use `flutter build apk` / `flutter build appbundle` for builds, not direct Gradle
 - Debug builds use debug keystore; release builds require manual confirmation
 - FCM setup requires `google-services.json` and `firebase_messaging` plugin in pubspec
+
+## Agent Guidelines
+
+This repository uses the following agents:
+
+| Agent | File | Category | Purpose |
+|---|---|---|---|
+| `android-agent` | `.github/agents/android-agent.agent.md` | Coordinator | Routes to single-task agents (thin orchestrator — never implements, never holds state) |
+| `android-planner` | `.github/agents/android-planner.agent.md` | Scope/Structure | Implementation planning |
+| `android-gradle` | `.github/agents/android-gradle.agent.md` | Build Configuration | Gradle build configuration |
+| `android-push` | `.github/agents/android-push.agent.md` | Push Notifications | FCM push notifications and deep links |
+| `android-platform` | `.github/agents/android-platform.agent.md` | Platform Features | Android permissions and platform features |
+| `android-ci` | `.github/agents/android-ci.agent.md` | CI/CD | CI workflows for Android builds |
+| `android-code-reviewer` | `.github/agents/android-code-reviewer.agent.md` | Gatekeeper | Code review before merge (validates via specialist agents with `send: true`) |
+
+Prompts are in `.github/prompts/` and skills in `.agents/skills/`.
+
+When asking for help, prefix your request with the agent name:
+- "@android-gradle Update android/app/build.gradle to target SDK 34"
+- "@android-push Verify FCM setup for hub_android"
+- "@android-platform Add CAMERA permission to AndroidManifest"
+- "@android-ci Create android-build.yml workflow"
+
+### Architectural Guardrails
+
+| Rule | Description |
+|---|---|
+| Thin orchestrator | Coordinator never implements, never holds state, never waits. All handoffs use `send: false`. |
+| DAG-only delegation | One-way flow, no circular calls (child → coordinator strictly forbidden). |
+| Max 2 concurrent agents | No more than two specialized agents active simultaneously. Queue excess and wait for idle. |
+| Sequential dispatch | If dependencies exist between agents, dispatch sequentially. Wait between dependent agents. |
+| Blocking handoffs (send: true) | Only child agents may use `send: true` (e.g., code-reviewer → gradle for config validation). |
+| One specialist per request | Ambiguous requests ask user to split. Never route to multiple agents for the same request. |
